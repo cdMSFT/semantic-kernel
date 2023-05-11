@@ -78,8 +78,5 @@ jobs:
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: |
         for solution in ${{ env.solutions }}; do
-          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/${{ matrix.container }} \
-          for project in ${{ env.projects }}; do \
-              dotnet test $project --no-build --verbosity normal --logger trx --results-directory ./TestResults --configuration ${{ matrix.configuration }} \
-          done
+          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/${{ matrix.container }} for project in ${{ env.projects }}; do dotnet test $project --no-build --verbosity normal --logger trx --results-directory ./TestResults --configuration ${{ matrix.configuration }} done
         done
