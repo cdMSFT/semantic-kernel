@@ -57,14 +57,14 @@ jobs:
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: echo "solutions=$(find ./ -type f -name "*.sln" | tr '\n' ' ')" >> $GITHUB_ENV
 
-    - name: Pull container ${{ runner.container }}
+    - name: Pull container ${{ matrix.container }}
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: |
-        docker pull mcr.microsoft.com/dotnet/${{ runner.container }}
+        docker pull mcr.microsoft.com/dotnet/${{ matrix.container }}
 
     - name: Build dotnet solution
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: |
         for solution in ${{ env.solutions }}; do
-          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/${{ runner.container }} dotnet build -c ${{ matrix.configuration }} -o out /app/$solution
+          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/${{ matrix.container }} dotnet build -c ${{ matrix.configuration }} -o out /app/$solution
         done
