@@ -41,7 +41,7 @@ jobs:
   build:
     strategy:
         matrix:
-          container: [ 'sdk:6.0', 'sdk:7.0' ]
+          container: [ 'sdk:6.0', 'sdk:7.0', '8.0.100-preview' ]
           configuration: [Release, Debug]
     runs-on: ubuntu-latest
     needs: check-for-dotnet-changes
@@ -71,12 +71,12 @@ jobs:
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: |
         for solution in ${{ env.solutions }}; do
-          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/${{ matrix.container }} dotnet build -c ${{ matrix.configuration }} -o out /app/$solution
+          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/${{ matrix.container }} dotnet build -c ${{ matrix.configuration }}
         done
         
     - name: Run Unit Tests
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: |
         for project in ${{ env.testprojects }}; do
-          dotnet test $project --no-build --verbosity detailed --results-directory /app/TestResults --configuration ${{ matrix.configuration }}
+          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/${{ matrix.container }} dotnet test $project --no-build --verbosity normal --results-directory /app/TestResults --configuration ${{ matrix.configuration }}
         done
