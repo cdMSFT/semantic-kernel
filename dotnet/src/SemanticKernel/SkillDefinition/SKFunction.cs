@@ -12,7 +12,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.SemanticKernel.AI;
 using Microsoft.SemanticKernel.AI.TextCompletion;
 using Microsoft.SemanticKernel.Diagnostics;
-using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
 using Microsoft.SemanticKernel.SemanticFunctions;
 
@@ -25,6 +24,8 @@ namespace Microsoft.SemanticKernel.SkillDefinition;
 /// </summary>
 public sealed class SKFunction : ISKFunction, IDisposable
 {
+    private IKernel _kernel;
+
     /// <inheritdoc/>
     public string Name { get; }
 
@@ -57,6 +58,7 @@ public sealed class SKFunction : ISKFunction, IDisposable
     /// <param name="log">Application logger</param>
     /// <returns>SK function instance</returns>
     public static ISKFunction? FromNativeMethod(
+        IKernel kernel,
         MethodInfo methodSignature,
         object? methodContainerInstance = null,
         string skillName = "",
@@ -73,6 +75,7 @@ public sealed class SKFunction : ISKFunction, IDisposable
         }
 
         return new SKFunction(
+            kernel: kernel,
             delegateType: methodDetails.Type,
             delegateFunction: methodDetails.Function,
             parameters: methodDetails.Parameters,
@@ -94,6 +97,7 @@ public sealed class SKFunction : ISKFunction, IDisposable
     /// <param name="log">Application logger</param>
     /// <returns>SK function instance</returns>
     public static ISKFunction FromNativeFunction(
+        IKernel kernel,
         Delegate nativeFunction,
         string skillName,
         string functionName,
@@ -104,6 +108,7 @@ public sealed class SKFunction : ISKFunction, IDisposable
         MethodDetails methodDetails = GetMethodDetails(nativeFunction.Method, null, false, log);
 
         return new SKFunction(
+            kernel: kernel,
             delegateType: methodDetails.Type,
             delegateFunction: methodDetails.Function,
             parameters: (parameters ?? Enumerable.Empty<ParameterView>()).ToList(),
@@ -123,6 +128,7 @@ public sealed class SKFunction : ISKFunction, IDisposable
     /// <param name="log">Optional logger for the function.</param>
     /// <returns>SK function instance.</returns>
     public static ISKFunction FromSemanticConfig(
+        IKernel kernel,
         string skillName,
         string functionName,
         SemanticFunctionConfig functionConfig,
@@ -163,6 +169,7 @@ public sealed class SKFunction : ISKFunction, IDisposable
         }
 
         return new SKFunction(
+            kernel: kernel,
             delegateType: DelegateTypes.ContextSwitchInSKContextOutTaskSKContext,
             delegateFunction: LocalFunc,
             parameters: functionConfig.PromptTemplate.GetParameters(),
@@ -198,11 +205,12 @@ public sealed class SKFunction : ISKFunction, IDisposable
         {
             log ??= NullLogger.Instance;
             context = new SKContext(
-                new ContextVariables(""),
-                NullMemory.Instance,
-                this._skillCollection,
-                log,
-                cancellationToken);
+                new ContextVariables("")
+                // NullMemory.Instance,
+                // this._skillCollection,
+                // log,
+                // cancellationToken
+            );
         }
 
         context.Variables.Update(input);
@@ -220,7 +228,8 @@ public sealed class SKFunction : ISKFunction, IDisposable
         if (context == null)
         {
             log ??= NullLogger.Instance;
-            context = new SKContext(new ContextVariables(""), NullMemory.Instance, null, log, cancellationToken);
+            // context = new SKContext(new ContextVariables(""), NullMemory.Instance, null, log, cancellationToken);
+            context = new SKContext(new ContextVariables(""));
         }
 
         return this.IsSemantic
@@ -313,6 +322,7 @@ public sealed class SKFunction : ISKFunction, IDisposable
     }
 
     internal SKFunction(
+        IKernel kernel,
         DelegateTypes delegateType,
         Delegate delegateFunction,
         IList<ParameterView> parameters,
@@ -323,10 +333,13 @@ public sealed class SKFunction : ISKFunction, IDisposable
         ILogger? log = null
     )
     {
+        Verify.NotNull(kernel);
         Verify.NotNull(delegateFunction);
         Verify.ValidSkillName(skillName);
         Verify.ValidFunctionName(functionName);
         Verify.ParametersUniqueness(parameters);
+
+        this._kernel = kernel;
 
         this._log = log ?? NullLogger.Instance;
 
@@ -366,7 +379,7 @@ public sealed class SKFunction : ISKFunction, IDisposable
     {
         this.VerifyIsSemantic();
 
-        this.EnsureContextHasSkills(context);
+        // this.EnsureContextHasSkills(context);
 
         settings ??= this._aiRequestSettings;
 
@@ -380,7 +393,7 @@ public sealed class SKFunction : ISKFunction, IDisposable
     {
         TraceFunctionTypeCall(this._delegateType, this._log);
 
-        this.EnsureContextHasSkills(context);
+        // this.EnsureContextHasSkills(context);
 
         switch (this._delegateType)
         {
@@ -520,11 +533,11 @@ public sealed class SKFunction : ISKFunction, IDisposable
         }
     }
 
-    private void EnsureContextHasSkills(SKContext context)
-    {
-        // If the function is invoked manually, the user might have left out the skill collection
-        context.Skills ??= this._skillCollection;
-    }
+    // private void EnsureContextHasSkills(SKContext context)
+    // {
+    //     // If the function is invoked manually, the user might have left out the skill collection
+    //     context.Skills ??= this._skillCollection;
+    // }
 
     private static MethodDetails GetMethodDetails(
         MethodInfo methodSignature,
