@@ -78,5 +78,5 @@ jobs:
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: |
         for project in ${{ env.testprojects }}; do
-          dotnet test $project --no-build --verbosity normal --logger trx --results-directory /app/TestResults --configuration ${{ matrix.configuration }}
+          dotnet test $project --no-build --verbosity detailed --results-directory /app/TestResults --configuration ${{ matrix.configuration }}
         done
