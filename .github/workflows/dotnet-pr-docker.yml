@@ -41,7 +41,7 @@ jobs:
   build:
     strategy:
         matrix:
-          container: [ 'sdk:6.0', 'sdk:7.0', '8.0.100-preview' ]
+          container: [ 'sdk:6.0', 'sdk:7.0', '8.0-preview' ]
           configuration: [Release, Debug]
     runs-on: ubuntu-latest
     needs: check-for-dotnet-changes
