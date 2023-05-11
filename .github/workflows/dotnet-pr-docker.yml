@@ -77,5 +77,5 @@ jobs:
     - name: Test
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: |
-        cmd="for project in ${{ env.testprojects }}; do dotnet test $project --no-build --verbosity normal --logger trx --results-directory ./TestResults --configuration ${{ matrix.configuration }}; done"
+        cmd="cd /app;for project in ${{ env.testprojects }}; do dotnet test $project --no-build --verbosity normal --logger trx --results-directory ./TestResults --configuration ${{ matrix.configuration }}; done"
         docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/${{ matrix.container }} bash -c "$cmd"
