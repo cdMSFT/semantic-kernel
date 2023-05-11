@@ -57,11 +57,6 @@ jobs:
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: echo "solutions=$(find ./ -type f -name "*.sln" | tr '\n' ' ')" >> $GITHUB_ENV
 
-    - name: Find unit test projects
-      shell: bash
-      if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
-      run: echo "testprojects=$(find ./dotnet -type f -name "*.UnitTests.csproj" | tr '\n' ' ')" >> $GITHUB_ENV
-
     - name: Pull container dotnet/sdk:${{ matrix.container }}
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: |
@@ -74,9 +69,14 @@ jobs:
           docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/sdk:${{ matrix.container }} dotnet build -c ${{ matrix.configuration }} /app/$solution
         done
         
+    - name: Find unit test projects
+      shell: bash
+      if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
+      run: echo "testprojects=$(find ./dotnet -type f -name "*.UnitTests.csproj" | tr '\n' ' ')" >> $GITHUB_ENV
+      
     - name: Run Unit Tests
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: |
         for project in ${{ env.testprojects }}; do
-          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/sdk:${{ matrix.container }} dotnet test $project --no-build --verbosity normal --results-directory /app/TestResults --configuration ${{ matrix.configuration }}
+          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/sdk:${{ matrix.container }} dotnet test -v normal -c ${{ matrix.configuration }} /app/$project
         done
