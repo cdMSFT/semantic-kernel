@@ -1,0 +1,68 @@
+#
+# This workflow will build and run all unit tests.
+#
+
+name: dotnet-pr-docker
+
+on:
+  workflow_dispatch:
+  push:
+#  pull_request:
+#    branches: [ "main", "feature*" ]
+
+permissions:
+  contents: read
+
+jobs:
+  check-for-dotnet-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      output1: ${{ steps.filter.outputs.dotnet}}
+    steps:
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          dotnet:
+            - 'dotnet/**'
+            - 'samples/dotnet/**'
+    - uses: actions/checkout@v3
+    # run only if 'dotnet' files were changed
+    - name: dotnet changes found
+      if: steps.filter.outputs.dotnet == 'true'
+      run: echo "dotnet file"
+    # run only if not 'dotnet' files were changed
+    - name: no dotnet changes found
+      if: steps.filter.outputs.dotnet != 'true'
+      run: echo "NOT dotnet file"
+
+  build:
+    strategy:
+        matrix:
+          container: [ 'sdk:6.0', 'sdk:7.0' ]
+          configuration: [Release, Debug]
+    runs-on: ubuntu-latest
+    needs: check-for-dotnet-changes
+    env:
+      NUGET_CERT_REVOCATION_MODE: offline
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        clean: true
+        
+    - name: Find solutions
+      shell: bash
+      if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
+      run: echo "solutions=$(find ./ -type f -name "*.sln" | tr '\n' ' ')" >> $GITHUB_ENV
+
+    - name: Pull container ${{ runner.container }}
+      if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
+      run: |
+        docker pull mcr.microsoft.com/dotnet/${{ runner.container }}
+
+    - name: Build dotnet application
+      if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
+      run: |
+        for solution in ${{ env.solutions }}; do
+          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/${{ runner.container }} dotnet build -c ${{ matrix.configuration }} -o out /app/$solution
+        done
