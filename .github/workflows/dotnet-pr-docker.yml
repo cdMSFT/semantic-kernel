@@ -42,9 +42,13 @@ jobs:
     strategy:
         fail-fast: false
         matrix:
-          container: [ '6.0', '7.0', '8.0-preview' ]
-          configuration: [Release, Debug]
-    runs-on: ubuntu-latest
+          include:
+          - { os: ubuntu-latest, dotnet: 6.0, configuration: Debug }
+          - { os: ubuntu-latest, dotnet: 6.0, configuration: Release }
+          - { os: ubuntu-latest, dotnet: 7.0, configuration: Release }
+          - { os: ubuntu-latest, dotnet: 8.0-preview, configuration: Release }
+          - { os: windows-latest, dotnet: 6.0-nanoserver-ltsc2022, configuration: Release }
+    runs-on: ${{ matrix.os }}
     needs: check-for-dotnet-changes
     env:
       NUGET_CERT_REVOCATION_MODE: offline
@@ -58,16 +62,16 @@ jobs:
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: echo "solutions=$(find ./ -type f -name "*.sln" | tr '\n' ' ')" >> $GITHUB_ENV
 
-    - name: Pull container dotnet/sdk:${{ matrix.container }}
+    - name: Pull container dotnet/sdk:${{ matrix.dotnet }}
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: |
-        docker pull mcr.microsoft.com/dotnet/sdk:${{ matrix.container }}
+        docker pull mcr.microsoft.com/dotnet/sdk:${{ matrix.dotnet }}
 
     - name: Build dotnet solution
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: |
         for solution in ${{ env.solutions }}; do
-          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/sdk:${{ matrix.container }} dotnet build -c ${{ matrix.configuration }} /app/$solution
+          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/sdk:${{ matrix.dotnet }} -e GITHUB_ACTIONS='true' /bin/sh -c "dotnet build -c ${{ matrix.configuration }} /app/$solution"
         done
         
     - name: Find unit test projects
@@ -79,5 +83,5 @@ jobs:
       if: needs.check-for-dotnet-changes.outputs.output1 == 'true'
       run: |
         for project in ${{ env.testprojects }}; do
-          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/sdk:${{ matrix.container }} /bin/sh -c "dotnet test $project --no-build --verbosity normal --results-directory /app/TestResults --configuration ${{ matrix.configuration }}"
+          docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/dotnet/sdk:${{ matrix.dotnet }} /bin/sh -c "dotnet test $project --no-build --verbosity normal --results-directory /app/TestResults --configuration ${{ matrix.configuration }}"
         done
