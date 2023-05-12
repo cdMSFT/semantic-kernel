@@ -4,8 +4,7 @@
     <AssemblyName>SemanticKernel.Connectors.UnitTests</AssemblyName>
     <RootNamespace>SemanticKernel.Connectors.UnitTests</RootNamespace>
     <TargetFrameworks>net6.0</TargetFrameworks>
-    <TargetFrameworks Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '7.0'))">$(TargetFrameworks);net7.0</TargetFrameworks>
-    <TargetFrameworks Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '8.0'))">$(TargetFrameworks);net8.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '17.4'))">$(TargetFrameworks);net7.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <IsPackable>false</IsPackable>
